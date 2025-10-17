@@ -29,7 +29,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/brands")
 @RequiredArgsConstructor
-public class BrandController {
+public class BrandController implements BrandApiDocs {
     private final BrandService service;
     private final BrandDtoMapper dtoMapper;
 
