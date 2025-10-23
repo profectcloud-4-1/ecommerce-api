@@ -24,6 +24,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         //우선 스웨거만 허용
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/api-docs", "/swagger-ui.html", "/h2-console/**").permitAll()
+                        .requestMatchers("/api/v1/orders/**").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();
