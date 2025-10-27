@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.annotations.Where;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import profect.group1.goormdotcom.common.domain.BaseEntity;
@@ -24,11 +25,12 @@ import profect.group1.goormdotcom.common.domain.BaseEntity;
 @Entity
 @Table(name = "p_cart_item")
 @Filter(name = "deletedFilter", condition = "deleted_at IS NULL")
-@SQLDelete(sql = "update cart_item set deleted_at = NOW(), cartId = NULL where id = ?")
+@SQLDelete(sql = "update p_cart_item set deleted_at = NOW(), cart_id = NULL where id = ?")
 @EntityListeners(AuditingEntityListener.class)
 public class CartItemEntity extends BaseEntity {
 
 	@Id
+	@UuidGenerator
 	private UUID id;
 	private UUID cartId;
 	private UUID productId;
@@ -38,11 +40,12 @@ public class CartItemEntity extends BaseEntity {
 	private LocalDateTime deletedAt;
 
 	public CartItemEntity(
+			final UUID id,
 			final UUID cartId,
 			final UUID productId,
 			final int quantity,
-			final int price
-	) {
+			final int price) {
+		this.id = id;
 		this.cartId = cartId;
 		this.productId = productId;
 		this.quantity = quantity;

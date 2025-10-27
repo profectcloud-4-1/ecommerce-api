@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import profect.group1.goormdotcom.common.domain.BaseEntity;
 
@@ -22,6 +23,7 @@ import profect.group1.goormdotcom.common.domain.BaseEntity;
 public class CartEntity extends BaseEntity {
 
 	@Id
+	@UuidGenerator
 	private UUID id;
 	private UUID customerId;
 

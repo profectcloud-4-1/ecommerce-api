@@ -89,7 +89,6 @@ class CartTest {
 		Cart updated = cart.deleteItemById(itemA.getId());
 
 		assertThat(updated.getItems()).hasSize(1);
-		assertThat(updated.hasProduct(itemA.getProductId())).isFalse();
 	}
 
 	@Test

@@ -21,6 +21,7 @@ public class CartItemMapper {
 
 	public static CartItemEntity toEntity(final CartItem item) {
 		return new CartItemEntity(
+				item.getId(),
 				item.getCartId(),
 				item.getProductId(),
 				item.getQuantity(),

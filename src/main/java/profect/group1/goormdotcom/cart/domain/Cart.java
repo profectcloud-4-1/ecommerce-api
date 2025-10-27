@@ -2,17 +2,19 @@ package profect.group1.goormdotcom.cart.domain;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @Getter
 @AllArgsConstructor
-@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Cart {
 
 	private UUID id;
@@ -32,7 +34,7 @@ public class Cart {
 	) {
 		this.id = id;
 		this.customerId = customerId;
-		this.items = items;
+		this.items = List.copyOf(items);
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
 
@@ -75,11 +77,6 @@ public class Cart {
 		return new Cart(this.id, this.customerId, newItems, this.createdAt, this.updatedAt);
 	}
 
-	public boolean hasProduct(final UUID productId) {
-		return items.stream()
-				.anyMatch(i -> i.getProductId().equals(productId));
-	}
-
 	public CartItem getCartItem(final UUID cartItemId) {
 		return items.stream().filter(e -> e.getId().equals(cartItemId))
 				.findFirst()
@@ -117,5 +114,18 @@ public class Cart {
 		this.totalPrice = items.stream()
 				.mapToInt(item -> item.getPrice() * item.getQuantity())
 				.sum();
+	}
+
+	public List<CartItem> getItems() {
+		return new ArrayList<>(items);
+	}
+
+	public Cart withNewItem(final CartItem newCartItem) {
+		List<CartItem> newItems = new ArrayList<>(this.items);
+		CartItem cartItem = getCartItemByProductId(newCartItem.getProductId());
+
+		newItems.set(newItems.indexOf(cartItem), newCartItem);
+
+		return new Cart(this.id, this.customerId, newItems, this.createdAt, this.updatedAt);
 	}
 }

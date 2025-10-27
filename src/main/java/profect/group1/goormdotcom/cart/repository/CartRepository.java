@@ -8,4 +8,6 @@ import profect.group1.goormdotcom.cart.repository.entity.CartEntity;
 public interface CartRepository extends JpaRepository<CartEntity, UUID> {
 
 	Optional<CartEntity> findByCustomerId(UUID customerId);
+
+	boolean existsByCustomerId(UUID customerId);
 }
