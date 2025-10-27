@@ -12,5 +12,5 @@ import org.springframework.stereotype.Component;
 @Setter
 public class FileProperties {
     private int presignedUrlExpiration = 3600;
-    private int tempRetentionHours = 24;
+    private int tempRetentionHours = 48;
 }
