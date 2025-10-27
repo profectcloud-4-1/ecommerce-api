@@ -77,18 +77,14 @@ public class OrderService {
         // 아이템 저장
 
         OrderEntity orderEntity = OrderEntity.builder()
-                        .id(UUID.randomUUID())
                         .customerId(req.getCustomerId())
                         .sellerId(req.getSellerId())
                         .totalAmount(req.getTotalAmount())
                         .orderName("주문명")
+                        .status(OrderStatus.PENDING.getCode())
                         .build();
 
         orderRepository.save(orderEntity);
-
-        
-
-
 
         List<OrderProductEntity> lines = new ArrayList<>();
         for (OrderItemDto itemDto : req.getItems()) {
@@ -96,7 +92,7 @@ public class OrderService {
                     ? req.getOrderName() : "상품";
                     
             OrderProductEntity line = OrderProductEntity.builder()
-                .id(UUID.randomUUID())
+                .order(orderEntity)
                 .productId(itemDto.getProductId())
                 .productName(productName)
                 .quantity(itemDto.getQuantity())
@@ -104,40 +100,11 @@ public class OrderService {
                 .build();
             lines.add(line);
         }
-        
-        // 주문 엔터티 생성 (아이템이 있어야 주문명 생성 가능)
-        OrderEntity order = orderRepository.save(
-            OrderEntity.builder()
-                .id(UUID.randomUUID())
-                .customerId(req.getCustomerId())
-                .sellerId(req.getSellerId())
-                .totalAmount(req.getTotalAmount())
-                .orderName(OrderNameFormatter.makeOrderName(lines))
-                .build()
-        );
-        
-        // 아이템에 order 연결 후 저장
-        for (OrderProductEntity line : lines) {
-            OrderProductEntity lineWithOrder = OrderProductEntity.builder()
-                .id(line.getId())
-                .order(order)
-                .productId(line.getProductId())
-                .productName(line.getProductName())
-                .quantity(line.getQuantity())
-                .totalAmount(line.getTotalAmount())
-                .build();
-            orderProductRepository.save(lineWithOrder);
-        }
-        
-        // OrderEntity를 다시 조회해서 반환
-        OrderEntity saved = orderRepository.findById(order.getId()).orElse(order);
 
-        //PENDING 상태
-        appendOrderStatus(saved.getId(), OrderStatus.PENDING);
-        log.info("주문 생성 완료: orderId={}, status=결제대기", saved.getId());
+        orderProductRepository.saveAll(lines);
 
-        // OrderStatusEntity current = latestStatus(saved.getId());
-        return orderMapper.toDomain(saved);
+        log.info("주문 생성 완료: orderId={}, status=결제대기", orderEntity.getId());
+        return orderMapper.toDomain(orderEntity);
 
         //최신 상태 조회 후 DTO 반환
         // OrderStatusEntity current = orderStatusRepository

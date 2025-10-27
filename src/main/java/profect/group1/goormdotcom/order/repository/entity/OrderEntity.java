@@ -12,6 +12,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import org.hibernate.annotations.UuidGenerator;
 import profect.group1.goormdotcom.common.domain.BaseEntity;
 
 @Entity
@@ -23,7 +24,7 @@ import profect.group1.goormdotcom.common.domain.BaseEntity;
 @Builder(toBuilder = true)
 public class OrderEntity extends BaseEntity {
     @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @UuidGenerator
     private UUID id;
     
     private UUID customerId;

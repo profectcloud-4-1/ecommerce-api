@@ -1,5 +1,6 @@
 package profect.group1.goormdotcom.order.repository.entity;
 
+import org.hibernate.annotations.UuidGenerator;
 import profect.group1.goormdotcom.common.domain.BaseEntity;
 
 import jakarta.persistence.*;
@@ -19,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class OrderProductEntity extends BaseEntity {
 
     @Id
-    @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
     // 주문 정보
