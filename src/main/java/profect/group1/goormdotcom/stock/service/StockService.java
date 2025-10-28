@@ -6,12 +6,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.hibernate.StaleObjectStateException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import profect.group1.goormdotcom.stock.domain.Stock;
+import profect.group1.goormdotcom.stock.repository.OptimisticStockRepository;
 import profect.group1.goormdotcom.stock.repository.StockRepository;
+import profect.group1.goormdotcom.stock.repository.entity.OptimisticStockEntity;
 import profect.group1.goormdotcom.stock.repository.entity.StockEntity;
 import profect.group1.goormdotcom.stock.repository.mapper.StockMapper;
 
@@ -20,6 +24,7 @@ import profect.group1.goormdotcom.stock.repository.mapper.StockMapper;
 public class StockService {
     
     private final StockRepository stockRepository;
+    private final OptimisticStockRepository optimisticStockRepository;
 
     private StockEntity getStockEntity(UUID productId) {
         Optional<StockEntity> stockEntity = stockRepository.findByProductId(productId);
@@ -69,13 +74,26 @@ public class StockService {
             entity.decreaseQuantity(requestedQuantityMap.get(productId));
             
             // TODO: 동시성 제어 구현 (낙관적 락 및 재확인 구현)
-            try {
-                stockRepository.save(entity);
-            } catch (Exception e) {
-                return false;
-            }
+            stockRepository.save(entity);
         }
         return true;
+    }
+
+    @Transactional
+    public void decreaseStocksWithOptimisticLock(Map<UUID, Integer> requestedQuantityMap) {
+        OptimisticStockEntity entity;
+        for (UUID productId: requestedQuantityMap.keySet()) {
+            Optional<OptimisticStockEntity> stockEntity = optimisticStockRepository.findByProductId(productId);
+        
+            if (stockEntity.isEmpty()) {
+                throw new IllegalArgumentException("Product not found");
+            }
+            entity = stockEntity.get(); 
+            entity.decreaseQuantity(requestedQuantityMap.get(productId));
+            
+            optimisticStockRepository.save(entity);
+            
+        }
     }
 
     @Transactional
@@ -84,14 +102,19 @@ public class StockService {
         for (UUID productId: requestedQuantityMap.keySet()) {
             entity = getStockEntity(productId);
             entity.increaseQuantity(requestedQuantityMap.get(productId));
-            
-            // TODO: 동시성 제어 구현 (낙관적 락 및 재확인 구현)
-            try {
-                stockRepository.save(entity);
-            } catch (Exception e) {
-                return false;
-            }
+            stockRepository.save(entity);
         }
         return true;
+    }
+
+    @Transactional
+    public void increaseStocksWithOptimisticLock(Map<UUID, Integer> requestedQuantityMap) {
+        OptimisticStockEntity entity;
+        for (UUID productId: requestedQuantityMap.keySet()) {
+            Optional<OptimisticStockEntity> stockEntity = optimisticStockRepository.findByProductId(productId);
+            entity = stockEntity.get();
+            entity.increaseQuantity(requestedQuantityMap.get(productId));
+            optimisticStockRepository.save(entity);
+        }
     }
 }

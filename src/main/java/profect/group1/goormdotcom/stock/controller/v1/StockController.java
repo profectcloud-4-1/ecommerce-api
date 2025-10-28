@@ -12,8 +12,10 @@ import profect.group1.goormdotcom.stock.controller.dto.StockRequestDto;
 import profect.group1.goormdotcom.stock.controller.dto.StockResponseDto;
 import profect.group1.goormdotcom.stock.controller.mapper.StockDtoMapper;
 import profect.group1.goormdotcom.stock.domain.Stock;
+import profect.group1.goormdotcom.stock.domain.exception.InsufficientStockException;
 import profect.group1.goormdotcom.stock.service.StockService;
 import profect.group1.goormdotcom.apiPayload.ApiResponse;
+import profect.group1.goormdotcom.apiPayload.code.status.ErrorStatus;
 import profect.group1.goormdotcom.apiPayload.code.status.SuccessStatus;
 
 import java.util.Map;
@@ -25,6 +27,8 @@ import java.util.UUID;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.hibernate.StaleObjectStateException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,6 +41,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class StockController implements StockApiDocs {
 
     private final StockService stockService;
+    private int MAX_RETRY = 5;
 
     @PostMapping
     @PreAuthorize("hasRole('MASTER')")
@@ -85,9 +90,44 @@ public class StockController implements StockApiDocs {
             requestedQuantityMap.put(dto.productId(), dto.requestedStockQuantity());
         }
 
-        // TODO: 재시도 로직 필요
         Boolean status = stockService.decreaseStocks(requestedQuantityMap);
         return ApiResponse.of(SuccessStatus._OK, new StockAdjustmentResponseDto(status, new ArrayList<UUID>(requestedQuantityMap.keySet())));
+    }
+
+    @PostMapping("/decrease/optimistic")
+    public ApiResponse<StockAdjustmentResponseDto> decreaseStocksWithOptimisitc(
+        @RequestBody @Valid StockAdjustmentRequestDto stockAdjustmentRequestDto
+    ) {
+        Map<UUID, Integer> requestedQuantityMap = new HashMap<UUID, Integer>();
+        for (ProductStockAdjustmentRequestDto dto : stockAdjustmentRequestDto.products()) {
+            requestedQuantityMap.put(dto.productId(), dto.requestedStockQuantity());
+        }
+        int retryCount = 0;
+
+        while (true) {
+            try {                
+                stockService.decreaseStocksWithOptimisticLock(requestedQuantityMap);
+                break;
+            } catch (InsufficientStockException e) {
+                return ApiResponse.onFailure(ErrorStatus._INSUFFICIENT_STOCK_QUANTITY.getCode() , ErrorStatus._INSUFFICIENT_STOCK_QUANTITY.getMessage(), new StockAdjustmentResponseDto(false, new ArrayList<UUID>(requestedQuantityMap.keySet())));
+            } catch (ObjectOptimisticLockingFailureException | StaleObjectStateException e ) {
+                // 재시도 로직
+                retryCount += 1;
+                if (retryCount > MAX_RETRY) { 
+                    return ApiResponse.onFailure(ErrorStatus._ADJUST_STOCK_FAILED.getCode() , ErrorStatus._ADJUST_STOCK_FAILED.getMessage(), new StockAdjustmentResponseDto(false, new ArrayList<UUID>(requestedQuantityMap.keySet())));
+                }
+
+                // 백오프
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return ApiResponse.onFailure(ErrorStatus._CONFLICT.getCode(), "Interrupted",
+                        new StockAdjustmentResponseDto(false, new ArrayList<>(requestedQuantityMap.keySet())));
+                }
+            } 
+        }
+        return ApiResponse.of(SuccessStatus._OK, new StockAdjustmentResponseDto(true, new ArrayList<UUID>(requestedQuantityMap.keySet())));
     }
 
     @PostMapping("/increase")
@@ -103,4 +143,37 @@ public class StockController implements StockApiDocs {
         return ApiResponse.of(SuccessStatus._OK, new StockAdjustmentResponseDto(status, new ArrayList<UUID>(requestedQuantityMap.keySet())));
     }
     
+    @PostMapping("/increase/optimistic")
+    public ApiResponse<StockAdjustmentResponseDto> increaseStocksWithOptimisitc(
+        @RequestBody @Valid StockAdjustmentRequestDto stockAdjustmentRequestDto
+    ) {
+        Map<UUID, Integer> requestedQuantityMap = new HashMap<UUID, Integer>();
+        for (ProductStockAdjustmentRequestDto dto : stockAdjustmentRequestDto.products()) {
+            requestedQuantityMap.put(dto.productId(), dto.requestedStockQuantity());
+        }
+        int retryCount = 0;
+
+        while (true) {
+            try {                
+                stockService.increaseStocksWithOptimisticLock(requestedQuantityMap);
+                break;
+            } catch (ObjectOptimisticLockingFailureException | StaleObjectStateException e ) {
+                // 재시도 로직
+                retryCount += 1;
+                if (retryCount > MAX_RETRY) { 
+                    return ApiResponse.onFailure(ErrorStatus._ADJUST_STOCK_FAILED.getCode() , ErrorStatus._ADJUST_STOCK_FAILED.getMessage(), new StockAdjustmentResponseDto(false, new ArrayList<UUID>(requestedQuantityMap.keySet())));
+                }
+
+                // 백오프
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return ApiResponse.onFailure(ErrorStatus._CONFLICT.getCode(), "Interrupted",
+                        new StockAdjustmentResponseDto(false, new ArrayList<>(requestedQuantityMap.keySet())));
+                }
+            } 
+        }
+        return ApiResponse.of(SuccessStatus._OK, new StockAdjustmentResponseDto(true, new ArrayList<UUID>(requestedQuantityMap.keySet())));
+    }
 }
