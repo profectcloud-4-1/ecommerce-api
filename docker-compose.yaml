@@ -1,0 +1,10 @@
+services:
+  app:
+    image: docker.hyeonwoo.com/goormdotcom/api-v1:22102701
+    ports:
+      - 80:8080
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev,secret
+    volumes:
+      - ./config:/app/config
+    user: 1000:1000

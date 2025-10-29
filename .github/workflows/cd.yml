@@ -1,0 +1,76 @@
+name: CD - Deploy Container to Private EC2 via Bastion
+
+on:
+  push:
+    branches: ["dev"]
+
+jobs:
+  build:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set build tag
+        id: vars
+        run: |
+
+      - name: Log in to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.HARBOR_REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Compute image tags
+        id: meta
+        run: |
+          set -euo pipefail
+          SHA_SHORT=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          TAG=$(date +'%Y%m%d')-${SHA_SHORT}
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "fulltag=${{ secrets.IMAGE_NAME }}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.fulltag }}
+          provenance: false
+
+  deploy:
+    name: Deploy to Private EC2 via Bastion
+    runs-on: ubuntu-latest
+    needs: build
+
+    env:
+      TAG: ${{ needs.build.outputs.tag }}
+      SSH_KEY_PATH: /tmp/ec2_key.pem
+      BASTION_KEY_PATH: /tmp/bastion_key.pem
+
+    steps:
+      - name: Prepare SSH keys
+        run: |
+          echo "${{ secrets.BASTION_SSH_KEY }}" > $BASTION_KEY_PATH
+          echo "${{ secrets.EC2_SSH_KEY }}" > $SSH_KEY_PATH
+          chmod 600 $BASTION_KEY_PATH $SSH_KEY_PATH
+
+      - name: Update docker-compose and deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -i $SSH_KEY_PATH \
+              -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i $BASTION_KEY_PATH -p ${{ secrets.BASTION_SSH_PORT }} -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
+              ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+            cd /home/${{ secrets.EC2_USER }}/goorm    # compose 파일 위치
+            sed -i "s|\(${{ secrets.IMAGE_NAME }}:\).*|\1${{ needs.build.outputs.tag }}|" docker-compose.yaml
+            docker login docker.hyeonwoo.com -u "${{ secrets.HARBOR_USERNAME }}" -p "${{ secrets.HARBOR_PASSWORD }}"
+            docker compose pull
+            docker compose up -d
+          EOF

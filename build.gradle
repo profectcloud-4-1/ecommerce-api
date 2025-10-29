@@ -34,6 +34,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
@@ -49,15 +50,21 @@ dependencies {
 
 	// PostgreSQL
 	runtimeOnly 'org.postgresql:postgresql:42.7.5'
+	
+	// H2 Database (for development)
+	runtimeOnly 'com.h2database:h2'
 
 	// JWT
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
-  
+
   //aws s3
   implementation platform('software.amazon.awssdk:bom:2.25.40')
   implementation 'software.amazon.awssdk:s3'
+
+    //JSON 직/역직렬화
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 }
 
 dependencyManagement {

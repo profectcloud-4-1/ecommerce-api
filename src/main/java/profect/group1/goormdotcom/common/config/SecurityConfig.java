@@ -1,14 +1,14 @@
 package profect.group1.goormdotcom.common.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import lombok.RequiredArgsConstructor;
 import profect.group1.goormdotcom.common.security.AuthenticationFailedEntryPoint;
 import profect.group1.goormdotcom.common.security.JwtAuthenticationFilter;
 import profect.group1.goormdotcom.common.security.JwtTokenProvider;
@@ -40,8 +40,10 @@ public class SecurityConfig {
                         // 스웨거 허용
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/api-docs", "/swagger-ui.html", "/h2-console/**").permitAll()
                         // 회원가입, 로그인 허용
-                        .requestMatchers("/users/register").permitAll()
-                        .requestMatchers("/users/login").permitAll()
+                        .requestMatchers("/api/v1/users/register").permitAll()
+                        .requestMatchers("/api/v1/users/login").permitAll()
+                        // 내부api 허용
+                        .requestMatchers("/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

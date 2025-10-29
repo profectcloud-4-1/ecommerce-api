@@ -22,9 +22,11 @@ import profect.group1.goormdotcom.apiPayload.code.BaseErrorCode;
 import profect.group1.goormdotcom.apiPayload.code.ErrorReasonDTO;
 import profect.group1.goormdotcom.apiPayload.code.status.ErrorStatus;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice(annotations = {RestController.class})
@@ -69,6 +71,28 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     ) {
         BaseErrorCode errorCode = getErrorCodeByName("_BAD_REQUEST");
         String errorPoint = "요청 형식이 올바르지 않습니다. JSON 형식을 확인해주세요.";
+
+        Throwable cause = ex.getMostSpecificCause();
+
+        // Enum 값 잘못된 경우 상세 메시지 생성
+        if (cause instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException inv) {
+            String path = inv.getPath().stream()
+                    .map(ref -> ref.getFieldName() != null ? ref.getFieldName() : "[" + ref.getIndex() + "]")
+                    .collect(Collectors.joining("."));
+            Class<?> target = inv.getTargetType();
+            Object invalid = inv.getValue();
+
+            if (target.isEnum()) {
+                String allowed = Arrays.stream(target.getEnumConstants())
+                        .map(e -> ((Enum<?>) e).name())
+                        .collect(Collectors.joining(", "));
+                errorPoint = String.format(
+                        "필드 '%s'의 값 '%s'는 잘못된 Enum 값입니다. 허용 값: [%s]",
+                        path, invalid, allowed
+                );
+            }
+
+        }
 
         return handleExceptionInternalFalse(
                 ex,

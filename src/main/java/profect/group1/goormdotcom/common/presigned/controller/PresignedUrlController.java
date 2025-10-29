@@ -1,10 +1,13 @@
 package profect.group1.goormdotcom.common.presigned.controller;
 
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import profect.group1.goormdotcom.apiPayload.ApiResponse;
+import profect.group1.goormdotcom.apiPayload.code.status.SuccessStatus;
 import profect.group1.goormdotcom.common.presigned.controller.dto.ObjectKeyResponse;
 import profect.group1.goormdotcom.common.presigned.controller.dto.PresignedUrlResponse;
 import profect.group1.goormdotcom.common.presigned.controller.dto.UploadUrlRequest;
@@ -31,6 +34,7 @@ public class PresignedUrlController {
                 request.getContentType()
         );
         return ResponseEntity.ok(response);
+        // return ApiResponse.of(SuccessStatus._OK, response);
     }
 
     /**
@@ -40,6 +44,7 @@ public class PresignedUrlController {
     public ResponseEntity<Void> confirmUpload(@PathVariable UUID fileId) {
         presignedUrlService.confirmUpload(fileId);
         return ResponseEntity.ok().build();
+        // return ApiResponse.of(SuccessStatus._OK, null);
     }
 
     /**
@@ -49,6 +54,7 @@ public class PresignedUrlController {
     public ResponseEntity<ObjectKeyResponse> getObjectKey(@PathVariable UUID fileId) {
         String url = presignedUrlService.getObjectKey(fileId);
         return ResponseEntity.ok(new ObjectKeyResponse(url));
+        // return ApiResponse.of(SuccessStatus._OK, new ObjectKeyResponse(url));
     }
 }
 

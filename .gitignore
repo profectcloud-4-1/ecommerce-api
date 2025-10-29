@@ -42,3 +42,5 @@ out/
 
 ### application profiles ###
 config/application-*.yml
+
+.DS_Store

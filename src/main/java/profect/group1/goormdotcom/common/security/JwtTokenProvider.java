@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
+import profect.group1.goormdotcom.user.domain.enums.UserRole;
+
 // JWT 토큰 생성/파싱: secret.yml에 만료기간 미설정 시 만료되지않음
 @Component
 public class JwtTokenProvider {
@@ -26,12 +28,15 @@ public class JwtTokenProvider {
         this.accessTokenValidityMs = accessTokenValidityMs;
     }
 
-    public String generateAccessToken(UUID userId, String role) {
+    public String generateAccessToken(UUID userId, String roleCode) {
         Date now = new Date();
+
+        UserRole role = UserRole.fromCode(roleCode);
+        System.out.println("role::: " + role.name());
 
         var builder =Jwts.builder()
                 .subject(userId.toString())
-                .claim("role", role)
+                .claim("role", role.name())
                 .issuedAt(now)
                 .signWith(secretKey);
         
