@@ -23,10 +23,9 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity, UUID> {
     // 특정 상품의 평균 별점 조회
     @Query("SELECT AVG(r.rating) FROM ReviewEntity r WHERE r.productId = :productId")
     Double findAverageRatingByProductId(@Param("productId") UUID productId);
+    //TODO: 규모 커지면 캐싱 또는 비정규화 컬럼으로 대체하기
 
     // 특정 상품의 총 리뷰 개수
     long countByProductId(UUID productId);
 
-    // 특정 상품의 리뷰 목록 조회 (나중에 구현)
-    // List<ReviewEntity> findByProductId(UUID productId, Pageable pageable);
 }

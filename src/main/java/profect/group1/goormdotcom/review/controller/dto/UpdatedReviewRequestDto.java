@@ -16,11 +16,5 @@ public class UpdatedReviewRequestDto {
     @Size(min = 10, max = 500, message = "리뷰는 10자 이상 500자 이하로 작성해주세요.")
     private String content;
 
-    // Optional: 이미지 URL 변경 (null이면 기존 유지, 빈 문자열이면 삭제)
-    @Pattern(
-            regexp = "^(https?://.*)?$",
-            message = "올바른 URL 형식이 아닙니다."
-    )
-    private String imageUrl;
 
 }
