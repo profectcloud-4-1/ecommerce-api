@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import org.hibernate.StaleObjectStateException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,33 +69,23 @@ public class StockService {
         return StockMapper.toDomain(entity);
     }
 
+
+    /*
+    * NOTE
+    * Spring Retryable
+    *
+    * reference: https://docs.spring.io/spring-retry/docs/api/current/org/springframework/retry/annotation/Retryable.html
+    * Baeldung: https://www.baeldung.com/spring-retry
+    *
+    */
+
+    @Retryable(
+            retryFor = {ObjectOptimisticLockingFailureException.class, StaleObjectStateException.class},
+            maxAttempts = 5,
+            backoff = @Backoff(delay = 100, maxDelay = 500, random = true)
+    )
     public Boolean decreaseStocks(Map<UUID, Integer> requestedQuantityMap) {
-        int retryCount = 0;
-
-        while (true) {
-            try {
-                // 여러 건의 상품 재고 차감 트랜잭션
                 adjustStockService.tryDecreaseStocks(requestedQuantityMap);
-                break;
-            } catch (InsufficientStockException e) {
-                throw e;
-            } catch (ObjectOptimisticLockingFailureException | StaleObjectStateException e) {
-                retryCount += 1;
-
-                if (retryCount > retryConfig.maxRetries()) {
-                    log.info("재고 차감 실패");
-                    throw e;
-                }
-
-                try {
-                    Thread.sleep(retryConfig.baseOffMs());
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return false;
-                }
-            }
-        }
-
         return true;
     }
 
@@ -101,7 +93,7 @@ public class StockService {
         StockEntity entity;
         for (UUID productId: requestedQuantityMap.keySet()) {
             int retryCount = 0;
-            
+
             while (true) {
                 try {
                     // 여러 건의 상품에 대해서 재고 증가 시도
